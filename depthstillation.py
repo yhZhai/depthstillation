@@ -19,6 +19,8 @@ import tqdm
 from bilateral_filter import sparse_bilateral_filtering
 from flow_colors import *
 from geometry import *
+from read_pfm import read_pfm
+from utils import *
 
 # Import warping library
 lib = cdll.LoadLibrary("external/forward_warping/libwarping.so")
@@ -69,12 +71,17 @@ if not os.path.exists(os.path.join("dCOCO", "P")):
 if not os.path.exists(os.path.join("dCOCO", "H'")):
 	os.makedirs(os.path.join("dCOCO", "H'"))
 	
+# Image, depth and segmentation paths
+image_path = "samples/tiktok.png"
+depth_path = "samples/tiktok_depth.pfm"
+seg_path = "samples/tiktok_mask.png"
+
 # Fix random seeds
 random.seed(1024)
 np.random.seed(1024)
 
 # Open I0 image
-rgb = cv2.imread("samples/im0.jpg", -1)
+rgb = cv2.imread(image_path, -1)
 if len(rgb.shape)<3:
 	h, w = rgb.shape
 	rgb = np.stack((rgb,rgb,rgb),-1)
@@ -82,7 +89,12 @@ else:
 	h, w, _ = rgb.shape
 
 # Open D0 (inverse) depth map and resize to I0
-depth = cv2.imread("samples/d0.png", -1) / (2**16-1)
+if depth_path.endswith(".pfm"):
+	depth, _ = read_pfm(depth_path)
+	depth = normalize_array(depth, 0, 2**16-1)
+	depth = depth / (2**16-1)
+else:
+	depth = cv2.imread(depth_path, -1) / (2**16-1)
 if depth.shape[0] != h or depth.shape[1] != w:
 	depth = cv2.resize(depth, (w, h))
 
@@ -101,7 +113,8 @@ if not args.no_sharp:
 # Load segmentation mask in case we simulate moving objects
 if args.segment:
 	labels=[]
-	instances_mask = cv2.imread("samples/s0.png", -1)
+	# instances_mask = cv2.imread(seg_path, -1)
+	instances_mask = cv2.imread(seg_path, cv2.IMREAD_GRAYSCALE)
 
 	# Resize instance mask to I0
 	if instances_mask.shape[0] != h or instances_mask.shape[1] != w:
@@ -119,17 +132,17 @@ if args.segment:
 		# Keep args.num_objects labels having the largest amount of pixels
 		labels=areas.argsort()[-args.num_objects:][::-1]
 		instances = []
-		
+
 		# For each object kept
 		for l in labels:
-		
+
 			# Create a segmentation mask for the single object
 			seg_mask = np.zeros_like(instances_mask)
-			
+
 			# Set to 1 pixels having label l
 			seg_mask[instances_mask==l] = 1
 			seg_mask = np.expand_dims(seg_mask, 0)
-			
+		
 			# Cast to pytorch tensor and append to masks list
 			seg_mask = torch.from_numpy(np.stack((seg_mask, seg_mask), -1)).float()
 			instances.append(seg_mask)
