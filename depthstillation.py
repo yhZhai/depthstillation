@@ -58,6 +58,16 @@ def parser_argument():
         help="Enable segmentation (for moving objects)",
     )
     parser.add_argument(
+        "--binary_segment",
+        action="store_true",
+        help="Binary segmentation to separate background and foreground",
+    )
+    parser.add_argument(
+        "--center_crop_segment",
+        action="store_true",
+        help="Center crop segmentation to square",
+    )
+    parser.add_argument(
         "--mask_type",
         dest="mask_type",
         type=str,
@@ -111,6 +121,9 @@ def parser_argument():
 
     if args.save_name == "":
         args.save_name = Path(args.image_path).stem
+
+    if args.binary_segment:
+        args.segment = True
 
     return args
 
@@ -176,7 +189,11 @@ def open_depth(args, rgb, h, w):
         depth = normalize_array(depth, 0, 2**16 - 1)
         depth = depth / (2**16 - 1)
     else:
-        depth = cv2.imread(depth_path, -1) / (2**16 - 1)
+        depth = cv2.imread(depth_path, -1)
+        if len(depth.shape) == 2:
+            depth = depth / (2**16 - 1)  # read the image as is
+        else:  # rgb image
+            depth = np.mean(depth, axis=2) / (2**8 - 1)
     if depth.shape[0] != h or depth.shape[1] != w:
         depth = cv2.resize(depth, (w, h))
 
@@ -210,9 +227,21 @@ def get_seg_mask(args, h, w):
         # instances_mask = cv2.imread(seg_path, -1)
         instances_mask = cv2.imread(seg_path, cv2.IMREAD_GRAYSCALE)
 
+        if (instances_mask.shape[0] != instances_mask.shape[1]) and args.center_crop_segment:
+            # Center crop segmentation mask to square
+            min_dim = min(instances_mask.shape[0], instances_mask.shape[1])
+            instances_mask = instances_mask[
+                (instances_mask.shape[0] - min_dim) // 2 : (instances_mask.shape[0] + min_dim) // 2,
+                (instances_mask.shape[1] - min_dim) // 2 : (instances_mask.shape[1] + min_dim) // 2,
+            ]
+
         # Resize instance mask to I0
         if instances_mask.shape[0] != h or instances_mask.shape[1] != w:
             instances_mask = cv2.resize(instances_mask, (w, h))
+
+        if args.binary_segment:
+            # Convert to binary mask
+            instances_mask = (instances_mask > 0).astype(np.uint8)
 
         # Get total number of objects
         classes = instances_mask.max()

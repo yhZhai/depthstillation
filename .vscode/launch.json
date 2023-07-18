@@ -14,6 +14,21 @@
             "args": [
                 "--segment"
             ]
+        },
+        {
+            "name": "depthstillation.py",
+            "type": "python",
+            "request": "launch",
+            "program": "depthstillation.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--image_path", "samples/tiktok/image_gt/TiktokDance_201_002_1x1_00000jpg.png",
+                "--depth_path", "samples/tiktok/depth_gt/TiktokDance_201_002_1x1_00000jpg.png",
+                "--seg_path", "samples/tiktok/mask/TiktokDance_201_002_1x1_00000.jpg",
+                // "--segment",
+                "--binary_segment",
+            ]
         }
     ]
 }
