@@ -68,6 +68,9 @@ def parser_argument():
         help="Center crop segmentation to square",
     )
     parser.add_argument(
+        "--zero_bg_depth", action="store_true", help="Zero depth on background"
+    )
+    parser.add_argument(
         "--mask_type",
         dest="mask_type",
         type=str,
@@ -216,7 +219,7 @@ def open_depth(args, rgb, h, w):
     return depth
 
 
-def get_seg_mask(args, h, w):
+def get_seg_mask(args, h, w, depth):
     seg_path = args.seg_path
     labels = None
     instances = None
@@ -248,6 +251,10 @@ def get_seg_mask(args, h, w):
         if args.binary_segment:
             # Convert to binary mask
             instances_mask = (instances_mask > 0).astype(np.uint8)
+        
+        if args.zero_bg_depth:
+            # Set depth to constant value in case we do not want to use depth
+            depth[np.where(instances_mask == 0)] = 100
 
         # Get total number of objects
         classes = instances_mask.max()
@@ -276,7 +283,7 @@ def get_seg_mask(args, h, w):
                 # Cast to pytorch tensor and append to masks list
                 seg_mask = torch.from_numpy(np.stack((seg_mask, seg_mask), -1)).float()
                 instances.append(seg_mask)
-    return labels, instances, instances_mask
+    return labels, instances, instances_mask, depth
 
 
 def get_intrinsics(args, h, w):
@@ -541,7 +548,7 @@ def main():
     set_random_seeds(args)
     rgb, h, w = open_image(args)
     depth = open_depth(args, rgb, h, w)
-    labels, instances, instances_mask = get_seg_mask(args, h, w)
+    labels, instances, instances_mask, depth = get_seg_mask(args, h, w, depth)
     K, inv_K = get_intrinsics(args, h, w)
     loop_over_motions(
         args, pbar, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask

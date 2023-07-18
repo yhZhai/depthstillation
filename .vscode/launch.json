@@ -27,8 +27,9 @@
                 "--image_path", "samples/tiktok/image_gt/TiktokDance_201_002_1x1_00000jpg.png",
                 "--depth_path", "samples/tiktok/depth_gt/TiktokDance_201_002_1x1_00000jpg.png",
                 "--seg_path", "samples/tiktok/mask/TiktokDance_201_002_1x1_00000.jpg",
-                // "--segment",
                 "--binary_segment",
+                "--save_everything",
+                "--zero_bg_depth",
             ]
         }
     ]
