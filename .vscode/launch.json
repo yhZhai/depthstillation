@@ -12,7 +12,8 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--segment"
+                "--segment",
+                "--save_everything"
             ]
         },
         {

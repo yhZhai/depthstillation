@@ -218,8 +218,8 @@ def open_depth(args, rgb, h, w):
 
 def get_seg_mask(args, h, w):
     seg_path = args.seg_path
-    seg_mask = None
     labels = None
+    instances = None
     instances_mask = None
     # Load segmentation mask in case we simulate moving objects
     if args.segment:
@@ -227,12 +227,18 @@ def get_seg_mask(args, h, w):
         # instances_mask = cv2.imread(seg_path, -1)
         instances_mask = cv2.imread(seg_path, cv2.IMREAD_GRAYSCALE)
 
-        if (instances_mask.shape[0] != instances_mask.shape[1]) and args.center_crop_segment:
+        if (
+            instances_mask.shape[0] != instances_mask.shape[1]
+        ) and args.center_crop_segment:
             # Center crop segmentation mask to square
             min_dim = min(instances_mask.shape[0], instances_mask.shape[1])
             instances_mask = instances_mask[
-                (instances_mask.shape[0] - min_dim) // 2 : (instances_mask.shape[0] + min_dim) // 2,
-                (instances_mask.shape[1] - min_dim) // 2 : (instances_mask.shape[1] + min_dim) // 2,
+                (instances_mask.shape[0] - min_dim)
+                // 2 : (instances_mask.shape[0] + min_dim)
+                // 2,
+                (instances_mask.shape[1] - min_dim)
+                // 2 : (instances_mask.shape[1] + min_dim)
+                // 2,
             ]
 
         # Resize instance mask to I0
@@ -270,7 +276,7 @@ def get_seg_mask(args, h, w):
                 # Cast to pytorch tensor and append to masks list
                 seg_mask = torch.from_numpy(np.stack((seg_mask, seg_mask), -1)).float()
                 instances.append(seg_mask)
-    return seg_mask, labels, instances_mask
+    return labels, instances, instances_mask
 
 
 def get_intrinsics(args, h, w):
@@ -295,7 +301,7 @@ def get_intrinsics(args, h, w):
 
 
 def loop_over_motions(
-    args, pbar, rgb, h, w, depth, inv_K, K, instances, labels, instances_mask
+    args, pbar, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask
 ):
     # Cast I0 and D0 to pytorch tensors
     rgb = torch.from_numpy(np.expand_dims(rgb, 0))
@@ -535,10 +541,10 @@ def main():
     set_random_seeds(args)
     rgb, h, w = open_image(args)
     depth = open_depth(args, rgb, h, w)
-    seg_mask, labels, instances_mask = get_seg_mask(args, h, w)
+    labels, instances, instances_mask = get_seg_mask(args, h, w)
     K, inv_K = get_intrinsics(args, h, w)
     loop_over_motions(
-        args, pbar, rgb, h, w, depth, inv_K, K, seg_mask, labels, instances_mask
+        args, pbar, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask
     )
 
 
