@@ -157,8 +157,8 @@ def create_directories(args):
     if not os.path.exists(args.save_path):
         os.makedirs(args.save_path)
     for dir_name in dir_list:
-        if not os.path.exists(os.path.join("dCOCO", dir_name)):
-            os.makedirs(os.path.join("dCOCO", dir_name))
+        if not os.path.exists(os.path.join(args.save_path, dir_name)):
+            os.makedirs(os.path.join(args.save_path, dir_name))
 
 
 def add_padding(image, pad_size):

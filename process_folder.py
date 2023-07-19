@@ -22,7 +22,7 @@ def process_images_in_folder(image_folder: str, depth_folder: str, seg_folder: s
         "--padding",
         "50",
         "--binary_segment",
-        "--save_everything",
+        # "--save_everything",
         "--zero_bg_depth",
         "--center_crop_segment",
     ]
