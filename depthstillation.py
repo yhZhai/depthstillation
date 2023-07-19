@@ -44,6 +44,7 @@ def parser_argument():
     parser.add_argument("--save_path", type=str, default="dCOCO", help="Save path")
     parser.add_argument("--save_name", type=str, default="", help="Save name")
 
+    parser.add_argument("--padding", type=int, default=0, help="Padding")
     parser.add_argument(
         "--num_motions",
         dest="num_motions",
@@ -131,12 +132,6 @@ def parser_argument():
     return args
 
 
-# Function to initialize progress bar
-def initialize_progress_bar(args):
-    pbar = tqdm.tqdm(total=args.num_motions)
-    return pbar
-
-
 def create_directories(args):
     if args.save_everything:
         dir_list = [
@@ -159,9 +154,33 @@ def create_directories(args):
             "im1_raw",
             "im1",
         ]
+    if not os.path.exists(args.save_path):
+        os.makedirs(args.save_path)
     for dir_name in dir_list:
         if not os.path.exists(os.path.join("dCOCO", dir_name)):
             os.makedirs(os.path.join("dCOCO", dir_name))
+
+
+def add_padding(image, pad_size):
+    """
+    Add zero padding around an image.
+    
+    Parameters:
+    - image: The input image as a NumPy array.
+    - pad_size: The padding size as an integer.
+    
+    Returns:
+    - Padded image as a NumPy array.
+    """
+    
+    # Check if the image is grayscale or color
+    if len(image.shape) == 2:  # Grayscale
+        pad_width = ((pad_size, pad_size), (pad_size, pad_size))
+    else:  # Color image
+        pad_width = ((pad_size, pad_size), (pad_size, pad_size), (0, 0))
+    
+    padded_image = np.pad(image, pad_width, mode='constant', constant_values=0)
+    return padded_image
 
 
 def set_random_seeds(args):
@@ -181,6 +200,7 @@ def open_image(args):
     else:
         h, w, _ = rgb.shape
 
+    rgb = add_padding(rgb, args.padding)
     return rgb, h, w
 
 
@@ -197,8 +217,11 @@ def open_depth(args, rgb, h, w):
             depth = depth / (2**16 - 1)  # read the image as is
         else:  # rgb image
             depth = np.mean(depth, axis=2) / (2**8 - 1)
+
     if depth.shape[0] != h or depth.shape[1] != w:
         depth = cv2.resize(depth, (w, h))
+
+    depth = add_padding(depth, args.padding)
 
     # Get depth map and normalize
     depth = 1.0 / (depth + 0.005)
@@ -247,6 +270,8 @@ def get_seg_mask(args, h, w, depth):
         # Resize instance mask to I0
         if instances_mask.shape[0] != h or instances_mask.shape[1] != w:
             instances_mask = cv2.resize(instances_mask, (w, h))
+        
+        instances_mask = add_padding(instances_mask, args.padding)
 
         if args.binary_segment:
             # Convert to binary mask
@@ -308,7 +333,7 @@ def get_intrinsics(args, h, w):
 
 
 def loop_over_motions(
-    args, pbar, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask
+    args, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask
 ):
     # Cast I0 and D0 to pytorch tensors
     rgb = torch.from_numpy(np.expand_dims(rgb, 0))
@@ -535,23 +560,19 @@ def loop_over_motions(
 
         # Clear cache and update progress bar
         ctypes._reset_cache()
-        pbar.update(1)
-
-    # Close progress bar, cya!
-    pbar.close()
 
 
 def main():
     args = parser_argument()
-    pbar = initialize_progress_bar(args)
     create_directories(args)
     set_random_seeds(args)
     rgb, h, w = open_image(args)
     depth = open_depth(args, rgb, h, w)
     labels, instances, instances_mask, depth = get_seg_mask(args, h, w, depth)
+    h, w = h + 2 * args.padding, w + 2 * args.padding
     K, inv_K = get_intrinsics(args, h, w)
     loop_over_motions(
-        args, pbar, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask
+        args, rgb, h, w, depth, inv_K, K, labels, instances, instances_mask
     )
 
 
