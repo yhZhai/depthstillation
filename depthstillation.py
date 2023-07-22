@@ -44,7 +44,7 @@ def parser_argument():
     parser.add_argument("--save_path", type=str, default="dCOCO", help="Save path")
     parser.add_argument("--save_name", type=str, default="", help="Save name")
 
-    parser.add_argument("--padding", type=int, default=0, help="Padding")
+    parser.add_argument("--padding", type=int, default=50, help="Padding")
     parser.add_argument(
         "--num_motions",
         dest="num_motions",
@@ -361,10 +361,10 @@ def loop_over_motions(
             scy = (-1) ** random.randrange(2)
             scz = (-1) ** random.randrange(2)
             # Random scalars in -0.2,0.2, excluding -0.1,0.1 to avoid zeros / very small motions
-            cx = (random.random() * 0.1 + 0.1) * scx
-            cy = (random.random() * 0.1 + 0.1) * scy
-            cz = (random.random() * 0.1 + 0.1) * scz
-            camera_mot = [cx, cy, cz]
+            cx = (random.random() * 0.1) * scx
+            cy = (random.random() * 0.1) * scy
+            cz = (random.random() * 0.1) * scz
+            camera_mot = [0, cy, 0]
 
             # generate random triplet of Euler angles
             # Random sign
@@ -375,7 +375,7 @@ def loop_over_motions(
             ax = (random.random() * math.pi / 36.0 + math.pi / 36.0) * sax
             ay = (random.random() * math.pi / 36.0 + math.pi / 36.0) * say
             az = (random.random() * math.pi / 36.0 + math.pi / 36.0) * saz
-            camera_ang = [ax, ay, az]
+            camera_ang = [0, ay, 0]
 
         axisangle = torch.from_numpy(np.array([[camera_ang]], dtype=np.float32))
         translation = torch.from_numpy(np.array([[camera_mot]]))
@@ -409,7 +409,7 @@ def loop_over_motions(
                 ciz = (random.random() * 0.05 + 0.05) * (
                     sign * (-1) ** random.randrange(2)
                 )
-                camerai_mot = [cix, ciy, ciz]
+                camerai_mot = [cix, ciy, 0]
 
                 # Random Euler angles (scalars and signs). Zeros and small rotations are avoided as before
                 aix = (random.random() * math.pi / 72.0 + math.pi / 72.0) * (
@@ -421,7 +421,7 @@ def loop_over_motions(
                 aiz = (random.random() * math.pi / 72.0 + math.pi / 72.0) * (
                     sign * (-1) ** random.randrange(2)
                 )
-                camerai_ang = [aix, aiy, aiz]
+                camerai_ang = [aix, aiy, 0]
 
                 ai = torch.from_numpy(np.array([[camerai_ang]], dtype=np.float32))
                 tri = torch.from_numpy(np.array([[camerai_mot]]))

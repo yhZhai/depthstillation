@@ -130,3 +130,6 @@ dmypy.json
 
 dCOCO/
 samples/tiktok/
+tiktok/
+tiktok*
+

@@ -12,8 +12,9 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--segment",
-                "--save_everything"
+                "samples/tiktok/hdnet_depth_gt/TiktokDance_201_002_1x1_00000.jpg"
+                // "--segment",
+                // "--save_everything"
             ]
         },
         {
