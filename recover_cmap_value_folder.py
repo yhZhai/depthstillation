@@ -31,7 +31,8 @@ def process_colormap_folder(input_folder, output_folder, reverse=False, num_work
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
         futures = [
             executor.submit(process_image, image_file, output_path, reverse)
-            for image_file in list(input_path.glob("*.png")) + list(input_path.glob("*.jpg"))
+            for image_file in list(input_path.glob("*.png"))
+            + list(input_path.glob("*.jpg"))
         ]
 
         for future in tqdm(

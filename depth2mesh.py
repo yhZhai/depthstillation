@@ -44,7 +44,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("depth_map_path", type=str, help="Path to the depth map image.")
     parser.add_argument(
-        "-o", "--output_obj_path", default="", type=str, help="Path to save the resulting .OBJ file."
+        "-o",
+        "--output_obj_path",
+        default="",
+        type=str,
+        help="Path to save the resulting .OBJ file.",
     )
     parser.add_argument(
         "-s",
@@ -56,6 +60,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.output_obj_path == "":
-        args.output_obj_path = args.depth_map_path.replace(".png", ".obj").replace(".jpg", ".obj")
+        args.output_obj_path = args.depth_map_path.replace(".png", ".obj").replace(
+            ".jpg", ".obj"
+        )
 
     depth_map_to_mesh(args.depth_map_path, args.output_obj_path, args.scale_factor)

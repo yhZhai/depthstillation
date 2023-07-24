@@ -3,9 +3,10 @@
 # Licensed under MIT license
 #
 
-import numpy as np
-from functools import reduce
 import time
+from functools import reduce
+
+import numpy as np
 
 __all__ = ["sparse_bilateral_filtering"]
 
@@ -24,7 +25,6 @@ def sparse_bilateral_filtering(
     num_iter=None,
     num_gs_iter=None,
 ):
-
     save_discontinuities = []
     vis_depth = depth.copy()
     backup_vis_depth = vis_depth.copy()
@@ -135,7 +135,7 @@ def bilateral_filter(
     ax = np.arange(-midpt, midpt + 1.0)
     xx, yy = np.meshgrid(ax, ax)
     if discontinuity_map is not None:
-        spatial_term = np.exp(-(xx ** 2 + yy ** 2) / (2.0 * sigma_s ** 2))
+        spatial_term = np.exp(-(xx**2 + yy**2) / (2.0 * sigma_s**2))
 
     # padding
     depth = depth[1:-1, 1:-1]
@@ -182,7 +182,7 @@ def bilateral_filter(
                         coef = coef * pad_mask_patches[pi, pj]
                 else:
                     range_term = np.exp(
-                        -((depth_patch - patch_midpt) ** 2) / (2.0 * sigma_r ** 2)
+                        -((depth_patch - patch_midpt) ** 2) / (2.0 * sigma_r**2)
                     )
                     coef = spatial_term * range_term
                 if coef.max() == 0:
@@ -214,7 +214,7 @@ def bilateral_filter(
                 depth_order = depth_patch.ravel().argsort()
                 patch_midpt = depth_patch[window_size // 2, window_size // 2]
                 range_term = np.exp(
-                    -((depth_patch - patch_midpt) ** 2) / (2.0 * sigma_r ** 2)
+                    -((depth_patch - patch_midpt) ** 2) / (2.0 * sigma_r**2)
                 )
                 if discontinuity_map is not None:
                     coef = spatial_term * range_term * discontinuity_holes

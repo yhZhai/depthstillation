@@ -40,7 +40,7 @@ def assemble_frames_to_videos(input_folder_path, output_folder_path, fps=30):
         if video_name not in frames_dict:
             frames_dict[video_name] = []
         frames_dict[video_name].append((frame_index, img_file))
-    
+
     print(f"Found {len(frames_dict)} videos")
 
     # Iterate over groups to create videos

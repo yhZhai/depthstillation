@@ -38,7 +38,11 @@ def process_image(image_path, depth_path, seg_path, save_path):
 
 
 def process_images_in_folder(
-    image_folder: str, depth_folder: str, seg_folder: str, save_path: str, num_workers: int
+    image_folder: str,
+    depth_folder: str,
+    seg_folder: str,
+    save_path: str,
+    num_workers: int,
 ):
     image_folder = Path(image_folder)
     image_paths = list(image_folder.glob("*.png")) + list(image_folder.glob("*.jpg"))
@@ -48,12 +52,31 @@ def process_images_in_folder(
     for image_path in image_paths:
         if (Path(depth_folder) / image_path.name).exists():
             depth_paths.append(Path(depth_folder) / image_path.name)
-        elif (Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".")).exists():
-            depth_paths.append(Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", "."))
-        elif (Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".").replace(".png", ".jpg")).exists():
-            depth_paths.append(Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".").replace(".png", ".jpg"))
+        elif (
+            Path(depth_folder)
+            / image_path.name.replace("png.", ".").replace("jpg.", ".")
+        ).exists():
+            depth_paths.append(
+                Path(depth_folder)
+                / image_path.name.replace("png.", ".").replace("jpg.", ".")
+            )
+        elif (
+            Path(depth_folder)
+            / image_path.name.replace("png.", ".")
+            .replace("jpg.", ".")
+            .replace(".png", ".jpg")
+        ).exists():
+            depth_paths.append(
+                Path(depth_folder)
+                / image_path.name.replace("png.", ".")
+                .replace("jpg.", ".")
+                .replace(".png", ".jpg")
+            )
         else:
-            print(Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", "."))
+            print(
+                Path(depth_folder)
+                / image_path.name.replace("png.", ".").replace("jpg.", ".")
+            )
             raise FileNotFoundError(f"Depth file for {image_path} not found")
     seg_paths = [
         Path(seg_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".")
@@ -65,7 +88,9 @@ def process_images_in_folder(
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_workers) as executor:
         list(
             tqdm(
-                executor.map(process_image, image_paths, depth_paths, seg_paths, save_path),
+                executor.map(
+                    process_image, image_paths, depth_paths, seg_paths, save_path
+                ),
                 total=len(image_paths),
             )
         )

@@ -3,12 +3,14 @@
 #
 
 import os
-import numpy as np
-import sys
 import re
+import sys
+
 import cv2
+import numpy as np
 import torch
 import torch.nn.functional as F
+
 
 def make_colorwheel():
     """

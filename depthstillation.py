@@ -8,8 +8,6 @@ from ctypes import *
 from pathlib import Path
 
 import cv2
-
-# Some packages we use
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -114,8 +112,20 @@ def parser_argument():
         default=False,
         help="Save all intermediate images",
     )
-    parser.add_argument("-vra", "--valid_random_angle", type=parse_bools, default="1,1,1", help="Three comma-separated boolean values. E.g., 1,0,1")
-    parser.add_argument("-vrm", "--valid_random_motion", type=parse_bools, default="1,1,1", help="Three comma-separated boolean values. E.g., 1,0,1")
+    parser.add_argument(
+        "-vra",
+        "--valid_random_angle",
+        type=parse_bools,
+        default="1,1,1",
+        help="Three comma-separated boolean values. E.g., 1,0,1",
+    )
+    parser.add_argument(
+        "-vrm",
+        "--valid_random_motion",
+        type=parse_bools,
+        default="1,1,1",
+        help="Three comma-separated boolean values. E.g., 1,0,1",
+    )
     parser.add_argument("-ab", "--angle_bias", type=float, default=0.0, nargs="+")
     parser.add_argument("-mb", "--motion_bias", type=float, default=0.0, nargs="+")
     parser.add_argument("--seed", type=int, help="Random seed", default=1024)
@@ -135,9 +145,9 @@ def parser_argument():
 
 
 def parse_bools(input_str):
-    bool_mapping = {'0': False, '1': True}
-    bools = input_str.split(',')
-    
+    bool_mapping = {"0": False, "1": True}
+    bools = input_str.split(",")
+
     if len(bools) != 3:
         raise ValueError("Expected three comma-separated boolean values (0 or 1).")
 
@@ -176,22 +186,22 @@ def create_directories(args):
 def add_padding(image, pad_size):
     """
     Add zero padding around an image.
-    
+
     Parameters:
     - image: The input image as a NumPy array.
     - pad_size: The padding size as an integer.
-    
+
     Returns:
     - Padded image as a NumPy array.
     """
-    
+
     # Check if the image is grayscale or color
     if len(image.shape) == 2:  # Grayscale
         pad_width = ((pad_size, pad_size), (pad_size, pad_size))
     else:  # Color image
         pad_width = ((pad_size, pad_size), (pad_size, pad_size), (0, 0))
-    
-    padded_image = np.pad(image, pad_width, mode='constant', constant_values=0)
+
+    padded_image = np.pad(image, pad_width, mode="constant", constant_values=0)
     return padded_image
 
 
@@ -230,18 +240,12 @@ def open_depth(args, rgb, h, w):
         else:  # rgb image
             depth = np.mean(depth, axis=2) / (2**8 - 1)
 
-    if (
-        depth.shape[0] != depth.shape[1]
-    ) and args.center_crop_segment:
+    if (depth.shape[0] != depth.shape[1]) and args.center_crop_segment:
         # Center crop segmentation mask to square
         min_dim = min(depth.shape[0], depth.shape[1])
         depth = depth[
-            (depth.shape[0] - min_dim)
-            // 2 : (depth.shape[0] + min_dim)
-            // 2,
-            (depth.shape[1] - min_dim)
-            // 2 : (depth.shape[1] + min_dim)
-            // 2,
+            (depth.shape[0] - min_dim) // 2 : (depth.shape[0] + min_dim) // 2,
+            (depth.shape[1] - min_dim) // 2 : (depth.shape[1] + min_dim) // 2,
         ]
 
     if depth.shape[0] != h or depth.shape[1] != w:
@@ -296,13 +300,13 @@ def get_seg_mask(args, h, w, depth):
         # Resize instance mask to I0
         if instances_mask.shape[0] != h or instances_mask.shape[1] != w:
             instances_mask = cv2.resize(instances_mask, (w, h))
-        
+
         instances_mask = add_padding(instances_mask, args.padding)
 
         if args.binary_segment:
             # Convert to binary mask
             instances_mask = (instances_mask > 0).astype(np.uint8)
-        
+
         if args.zero_bg_depth:
             # Set depth to constant value in case we do not want to use depth
             depth[np.where(instances_mask == 0)] = 100
