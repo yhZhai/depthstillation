@@ -3,10 +3,13 @@ import argparse
 import cv2
 import numpy as np
 
+from recover_cmap_value import decode_colormap_image
+
 
 def depth_map_to_mesh(depth_map_path, output_obj_path, scale_factor=1.0):
+    # depth_map = decode_colormap_image(depth_map_path, reverse=False)
     # Load the depth map
-    depth_map = cv2.imread(depth_map_path, -1)
+    depth_map = cv2.imread(str(depth_map_path), -1)
     if len(depth_map.shape) == 2:
         depth_map = depth_map
     else:  # rgb image
@@ -41,9 +44,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("depth_map_path", type=str, help="Path to the depth map image.")
     parser.add_argument(
-        "output_obj_path", type=str, help="Path to save the resulting .OBJ file."
+        "-o", "--output_obj_path", default="", type=str, help="Path to save the resulting .OBJ file."
     )
     parser.add_argument(
+        "-s",
         "--scale_factor",
         type=float,
         default=1.0,
@@ -51,5 +55,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    if args.output_obj_path == "":
+        args.output_obj_path = args.depth_map_path.replace(".png", ".obj").replace(".jpg", ".obj")
 
     depth_map_to_mesh(args.depth_map_path, args.output_obj_path, args.scale_factor)

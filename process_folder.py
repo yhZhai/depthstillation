@@ -22,15 +22,16 @@ def process_image(image_path, depth_path, seg_path, save_path):
         str(image_path),
         "--depth_path",
         str(depth_path),
-        "--seg_path",
-        str(seg_path),
+        # "--seg_path",
+        # str(seg_path),
         "--save_path",
         str(save_path),
         "--padding",
         "75",
-        "--binary_segment",
-        "--zero_bg_depth",
+        # "--binary_segment",
+        # "--zero_bg_depth",
         "--center_crop_segment",
+        # "--save_everything",
     ]
 
     subprocess.run(cmd, check=True)
@@ -43,7 +44,17 @@ def process_images_in_folder(
     image_paths = list(image_folder.glob("*.png")) + list(image_folder.glob("*.jpg"))
 
     # Determine depth and segmentation file names
-    depth_paths = [Path(depth_folder) / image_path.name for image_path in image_paths]
+    depth_paths = []
+    for image_path in image_paths:
+        if (Path(depth_folder) / image_path.name).exists():
+            depth_paths.append(Path(depth_folder) / image_path.name)
+        elif (Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".")).exists():
+            depth_paths.append(Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", "."))
+        elif (Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".").replace(".png", ".jpg")).exists():
+            depth_paths.append(Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".").replace(".png", ".jpg"))
+        else:
+            print(Path(depth_folder) / image_path.name.replace("png.", ".").replace("jpg.", "."))
+            raise FileNotFoundError(f"Depth file for {image_path} not found")
     seg_paths = [
         Path(seg_folder) / image_path.name.replace("png.", ".").replace("jpg.", ".")
         for image_path in image_paths
@@ -63,13 +74,10 @@ def process_images_in_folder(
 if __name__ == "__main__":
     # Adjust the number of workers as needed
     process_images_in_folder(
-        # "samples/tiktok/image_gt",
-        # "/mnt/c/Users/admin/Documents/meeting_materials/07-01-2023/disco_image_baseline/pred_gs3.0_scale-cond1.0-ref1.0",
-        # "/mnt/c/Users/admin/Documents/meeting_materials/07-01-2023/disco_depth_baseline/pred_gs3.0_scale-cond1.0-ref1.0",
-        # "samples/tiktok/depth_gt",
-        "/mnt/c/Users/admin/Documents/meeting_materials/07-20-2023/clsmidattunet/pred_gs3.0_scale-cond1.0-ref1.0",
-        "/mnt/c/Users/admin/Documents/meeting_materials/07-20-2023/clsmidattunet/depth_pred_gs3.0_scale-cond1.0-ref1.0",
-        "samples/tiktok/mask",
-        "tiktok_clsmidattunet",
+        image_folder="samples/tiktok/image_gt",
+        # depth_folder="samples/tiktok/depth_gt",
+        depth_folder="samples/tiktok/hdnet_depth_gray_gt",
+        seg_folder="samples/tiktok/mask",
+        save_path="tiktok_hdnet_gt",
         num_workers=12,
     )

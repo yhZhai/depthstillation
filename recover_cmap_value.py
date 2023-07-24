@@ -13,7 +13,7 @@ def closest_color(rgb, colormap):
     return index_of_smallest_difference
 
 
-def decode_colormap_image(image_path):
+def decode_colormap_image(image_path, reverse=False):
     # Load the image
     img = Image.open(image_path).convert("RGB")
     img_data = np.array(img)
@@ -30,6 +30,9 @@ def decode_colormap_image(image_path):
         for j in range(img_data.shape[1]):
             original_values[i, j] = closest_color(img_data[i, j], colormap) / 255.0
 
+    # scaled from 0 to 1
+    if reverse:
+        return 1.0 - original_values
     return original_values
 
 
@@ -38,8 +41,9 @@ if __name__ == "__main__":
         description="Decode a colormap image back to its original values."
     )
     parser.add_argument("image_path", type=str, help="Path to the colormap image.")
+    parser.add_argument("--reverse", action="store_true", help="Reverse the depth.")
 
     args = parser.parse_args()
 
-    decoded_values = decode_colormap_image(args.image_path)
+    decoded_values = decode_colormap_image(args.image_path, args.reverse)
     print(decoded_values)

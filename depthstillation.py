@@ -13,8 +13,6 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import tqdm
-from numpy.ctypeslib import ndpointer
 
 # External scripts
 from bilateral_filter import sparse_bilateral_filtering
@@ -116,6 +114,10 @@ def parser_argument():
         default=False,
         help="Save all intermediate images",
     )
+    parser.add_argument("-vra", "--valid_random_angle", type=parse_bools, default="1,1,1", help="Three comma-separated boolean values. E.g., 1,0,1")
+    parser.add_argument("-vrm", "--valid_random_motion", type=parse_bools, default="1,1,1", help="Three comma-separated boolean values. E.g., 1,0,1")
+    parser.add_argument("-ab", "--angle_bias", type=float, default=0.0, nargs="+")
+    parser.add_argument("-mb", "--motion_bias", type=float, default=0.0, nargs="+")
     parser.add_argument("--seed", type=int, help="Random seed", default=1024)
     args = parser.parse_args()
 
@@ -130,6 +132,16 @@ def parser_argument():
         args.segment = True
 
     return args
+
+
+def parse_bools(input_str):
+    bool_mapping = {'0': False, '1': True}
+    bools = input_str.split(',')
+    
+    if len(bools) != 3:
+        raise ValueError("Expected three comma-separated boolean values (0 or 1).")
+
+    return [bool_mapping[b] for b in bools]
 
 
 def create_directories(args):
@@ -214,9 +226,23 @@ def open_depth(args, rgb, h, w):
     else:
         depth = cv2.imread(depth_path, -1)
         if len(depth.shape) == 2:
-            depth = depth / (2**16 - 1)  # read the image as is
+            depth = depth / (2**8 - 1)  # read the image as is
         else:  # rgb image
             depth = np.mean(depth, axis=2) / (2**8 - 1)
+
+    if (
+        depth.shape[0] != depth.shape[1]
+    ) and args.center_crop_segment:
+        # Center crop segmentation mask to square
+        min_dim = min(depth.shape[0], depth.shape[1])
+        depth = depth[
+            (depth.shape[0] - min_dim)
+            // 2 : (depth.shape[0] + min_dim)
+            // 2,
+            (depth.shape[1] - min_dim)
+            // 2 : (depth.shape[1] + min_dim)
+            // 2,
+        ]
 
     if depth.shape[0] != h or depth.shape[1] != w:
         depth = cv2.resize(depth, (w, h))
@@ -362,9 +388,14 @@ def loop_over_motions(
             scz = (-1) ** random.randrange(2)
             # Random scalars in -0.2,0.2, excluding -0.1,0.1 to avoid zeros / very small motions
             cx = (random.random() * 0.1) * scx
+            cx = 0.0 if args.valid_random_motion[0] else cx
             cy = (random.random() * 0.1) * scy
+            cy = 0.0 if args.valid_random_motion[1] else cy
             cz = (random.random() * 0.1) * scz
-            camera_mot = [0, cy, 0]
+            cz = 0.0 if args.valid_random_motion[2] else cz
+            camera_mot = [cx, cy, cz]
+            if len(args.motion_bias) == 3:
+                camera_mot = [camera_mot[i] + args.motion_bias[i] for i in range(3)]
 
             # generate random triplet of Euler angles
             # Random sign
@@ -373,9 +404,14 @@ def loop_over_motions(
             saz = (-1) ** random.randrange(2)
             # Random angles in -pi/18,pi/18, excluding -pi/36,pi/36 to avoid zeros / very small rotations
             ax = (random.random() * math.pi / 36.0 + math.pi / 36.0) * sax
+            ax = 0.0 if args.valid_random_angle[0] else ax
             ay = (random.random() * math.pi / 36.0 + math.pi / 36.0) * say
+            ay = 0.0 if args.valid_random_angle[1] else ay
             az = (random.random() * math.pi / 36.0 + math.pi / 36.0) * saz
-            camera_ang = [0, ay, 0]
+            az = 0.0 if args.valid_random_angle[2] else az
+            camera_ang = [ax, ay, az]
+            if len(args.angle_bias) == 3:
+                camera_ang = [camera_ang[i] + args.angle_bias[i] for i in range(3)]
 
         axisangle = torch.from_numpy(np.array([[camera_ang]], dtype=np.float32))
         translation = torch.from_numpy(np.array([[camera_mot]]))
