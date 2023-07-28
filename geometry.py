@@ -153,3 +153,12 @@ def rot_from_axisangle(vec):
     rot[:, 3, 3] = 1
 
     return rot
+
+
+if __name__ == "__main__":
+    axisangle = [0, 0, 0]
+    translation = [0, 0, 0]
+    axisangle = torch.from_numpy(np.array([[axisangle]], dtype=np.float32))
+    translation = torch.from_numpy(np.array([[translation]], dtype=np.float32))
+    M = transformation_from_parameters(axisangle, translation, invert=False)
+    print(M)

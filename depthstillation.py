@@ -126,8 +126,8 @@ def parser_argument():
         default="1,1,1",
         help="Three comma-separated boolean values. E.g., 1,0,1",
     )
-    parser.add_argument("-ab", "--angle_bias", type=float, default=0.0, nargs="+")
-    parser.add_argument("-mb", "--motion_bias", type=float, default=0.0, nargs="+")
+    parser.add_argument("-ab", "--angle_bias", type=parse_floats, default="0,0,0")
+    parser.add_argument("-mb", "--motion_bias", type=parse_floats, default="0,0,0")
     parser.add_argument("--seed", type=int, help="Random seed", default=1024)
     args = parser.parse_args()
 
@@ -142,6 +142,18 @@ def parser_argument():
         args.segment = True
 
     return args
+
+
+def parse_floats(input_str):
+    floats = input_str.replace("n", "-")
+    floats = floats.split(",")
+
+    if len(floats) != 3:
+        raise ValueError(
+            "Expected three comma-separated float values. E.g., 1.2,3.4,5.6"
+        )
+
+    return [float(f) for f in floats]
 
 
 def parse_bools(input_str):
@@ -236,9 +248,9 @@ def open_depth(args, rgb, h, w):
     else:
         depth = cv2.imread(depth_path, -1)
         if len(depth.shape) == 2:
-            depth = depth / (2**8 - 1)  # read the image as is
+            pass
         else:  # rgb image
-            depth = np.mean(depth, axis=2) / (2**8 - 1)
+            depth = np.mean(depth, axis=2)
 
     if (depth.shape[0] != depth.shape[1]) and args.center_crop_segment:
         # Center crop segmentation mask to square
@@ -253,9 +265,10 @@ def open_depth(args, rgb, h, w):
 
     depth = add_padding(depth, args.padding)
 
-    # Get depth map and normalize
-    depth = 1.0 / (depth + 0.005)
-    depth[depth > 100] = 100
+    # # Get depth map and normalize
+    # depth = 1.0 / (depth + 0.005)
+    # depth[depth > 100] = 100
+    depth = (255 - depth).clip(10)
 
     # Set depth to constant value in case we do not want to use depth
     if args.no_depth:
@@ -392,11 +405,11 @@ def loop_over_motions(
             scz = (-1) ** random.randrange(2)
             # Random scalars in -0.2,0.2, excluding -0.1,0.1 to avoid zeros / very small motions
             cx = (random.random() * 0.1) * scx
-            cx = 0.0 if args.valid_random_motion[0] else cx
+            cx = cx if args.valid_random_motion[0] else 0.0
             cy = (random.random() * 0.1) * scy
-            cy = 0.0 if args.valid_random_motion[1] else cy
+            cy = cy if args.valid_random_motion[1] else 0.0
             cz = (random.random() * 0.1) * scz
-            cz = 0.0 if args.valid_random_motion[2] else cz
+            cz = cz if args.valid_random_motion[2] else 0.0
             camera_mot = [cx, cy, cz]
             if len(args.motion_bias) == 3:
                 camera_mot = [camera_mot[i] + args.motion_bias[i] for i in range(3)]
@@ -408,14 +421,19 @@ def loop_over_motions(
             saz = (-1) ** random.randrange(2)
             # Random angles in -pi/18,pi/18, excluding -pi/36,pi/36 to avoid zeros / very small rotations
             ax = (random.random() * math.pi / 36.0 + math.pi / 36.0) * sax
-            ax = 0.0 if args.valid_random_angle[0] else ax
+            ax = ax if args.valid_random_angle[0] else 0.0
             ay = (random.random() * math.pi / 36.0 + math.pi / 36.0) * say
-            ay = 0.0 if args.valid_random_angle[1] else ay
+            ay = ay if args.valid_random_angle[1] else 0.0
             az = (random.random() * math.pi / 36.0 + math.pi / 36.0) * saz
-            az = 0.0 if args.valid_random_angle[2] else az
+            az = az if args.valid_random_angle[2] else 0.0
             camera_ang = [ax, ay, az]
             if len(args.angle_bias) == 3:
                 camera_ang = [camera_ang[i] + args.angle_bias[i] for i in range(3)]
+
+            print(f"camera_mot: {camera_mot}")
+            print(f"camera_ang: {camera_ang}")
+            # print(f"valid_random_motion: {args.valid_random_motion}")
+            # print(f"valid_random_angle: {args.valid_random_angle}")
 
         axisangle = torch.from_numpy(np.array([[camera_ang]], dtype=np.float32))
         translation = torch.from_numpy(np.array([[camera_mot]]))
@@ -443,25 +461,31 @@ def loop_over_motions(
                 cix = (random.random() * 0.05 + 0.05) * (
                     sign * (-1) ** random.randrange(2)
                 )
+                cix = cix if args.valid_random_motion[0] else 0.0
                 ciy = (random.random() * 0.05 + 0.05) * (
                     sign * (-1) ** random.randrange(2)
                 )
+                ciy = ciy if args.valid_random_motion[1] else 0.0
                 ciz = (random.random() * 0.05 + 0.05) * (
                     sign * (-1) ** random.randrange(2)
                 )
-                camerai_mot = [cix, ciy, 0]
+                ciz = ciz if args.valid_random_motion[2] else 0.0
+                camerai_mot = [cix, ciy, ciz]
 
                 # Random Euler angles (scalars and signs). Zeros and small rotations are avoided as before
                 aix = (random.random() * math.pi / 72.0 + math.pi / 72.0) * (
                     sign * (-1) ** random.randrange(2)
                 )
+                aix = aix if args.valid_random_angle[0] else 0.0
                 aiy = (random.random() * math.pi / 72.0 + math.pi / 72.0) * (
                     sign * (-1) ** random.randrange(2)
                 )
+                aiy = aiy if args.valid_random_angle[1] else 0.0
                 aiz = (random.random() * math.pi / 72.0 + math.pi / 72.0) * (
                     sign * (-1) ** random.randrange(2)
                 )
-                camerai_ang = [aix, aiy, 0]
+                aiz = aiz if args.valid_random_angle[2] else 0.0
+                camerai_ang = [aix, aiy, aiz]
 
                 ai = torch.from_numpy(np.array([[camerai_ang]], dtype=np.float32))
                 tri = torch.from_numpy(np.array([[camerai_mot]]))
